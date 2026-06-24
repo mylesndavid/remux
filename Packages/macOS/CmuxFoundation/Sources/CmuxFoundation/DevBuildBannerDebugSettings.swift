@@ -6,7 +6,7 @@ public struct DevBuildBannerDebugSettings {
     /// Defaults key backing sidebar dev-build banner visibility.
     public static let sidebarBannerVisibleKey = "showSidebarDevBuildBanner"
     /// Default when the user has not stored a preference.
-    public static let defaultShowSidebarBanner = true
+    public static let defaultShowSidebarBanner = false
 
     private let defaults: UserDefaults
 

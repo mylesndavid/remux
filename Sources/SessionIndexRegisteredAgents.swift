@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 
 struct GrokSessionRoot: Sendable, Hashable {
     let sessionsRoot: String
@@ -393,6 +394,16 @@ extension SessionIndexStore {
                 agent: .registered(RegisteredSessionAgent(registration: registration))
             )
         }
+
+        if case .sqliteDatabase = registration.sessionIdSource {
+            return loadSQLiteSessionEntries(
+                registration: registration,
+                needle: needle,
+                cwdFilter: cwdFilter,
+                offset: offset,
+                limit: limit
+            )
+        }
         let roots = registeredSessionRoots(registration: registration, cwdFilter: cwdFilter)
         guard !roots.isEmpty else { return [] }
         let fm = FileManager.default
@@ -461,6 +472,97 @@ extension SessionIndexStore {
             ))
         }
         return Array(matches.dropFirst(offset).prefix(limit))
+    }
+
+    // MARK: - SQLite-backed sessions (e.g. Devin)
+
+    /// Lists sessions from a SQLite database (`registration.sessionDirectory`
+    /// points at the .db). Expects a `sessions` table with columns
+    /// `id, title, working_directory, last_activity_at, hidden`. Opens a temporary
+    /// copy read-only so a live agent writing to the DB can't lock or be disturbed.
+    nonisolated static func loadSQLiteSessionEntries(
+        registration: CmuxVaultAgentRegistration,
+        needle: String,
+        cwdFilter: String?,
+        offset: Int,
+        limit: Int
+    ) -> [SessionEntry] {
+        guard let configured = registration.sessionDirectory else { return [] }
+        let dbPath = ((configured as NSString).expandingTildeInPath as NSString).standardizingPath
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: dbPath) else { return [] }
+
+        // Snapshot the db (+ -wal/-shm) to a temp dir so we never touch the live file.
+        let tempDir = fm.temporaryDirectory.appendingPathComponent("cmux-vault-sqlite-\(registration.id)-\(abs(dbPath.hashValue))", isDirectory: true)
+        try? fm.removeItem(at: tempDir)
+        guard (try? fm.createDirectory(at: tempDir, withIntermediateDirectories: true)) != nil else { return [] }
+        defer { try? fm.removeItem(at: tempDir) }
+        let tempDB = tempDir.appendingPathComponent("snapshot.db")
+        for suffix in ["", "-wal", "-shm"] {
+            let src = dbPath + suffix
+            guard fm.fileExists(atPath: src) else { continue }
+            try? fm.copyItem(atPath: src, toPath: tempDB.path + suffix)
+        }
+        guard fm.fileExists(atPath: tempDB.path) else { return [] }
+
+        var db: OpaquePointer?
+        guard sqlite3_open_v2(tempDB.path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK, let db else {
+            sqlite3_close(db)
+            return []
+        }
+        defer { sqlite3_close(db) }
+        _ = sqlite3_busy_timeout(db, 100)
+
+        var sql = """
+            SELECT id, COALESCE(NULLIF(TRIM(title), ''), '(untitled)'), working_directory, last_activity_at
+            FROM sessions
+            WHERE hidden = 0
+            """
+        let trimmedNeedle = needle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedNeedle.isEmpty { sql += " AND (title LIKE ?1 OR working_directory LIKE ?1)" }
+        if cwdFilter != nil { sql += " AND working_directory = ?2" }
+        sql += " ORDER BY last_activity_at DESC LIMIT ?3 OFFSET ?4"
+
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt else {
+            sqlite3_finalize(stmt)
+            return []
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        let SQLITE_TRANSIENT_FN = unsafeBitCast(OpaquePointer(bitPattern: -1), to: sqlite3_destructor_type.self)
+        if !trimmedNeedle.isEmpty {
+            sqlite3_bind_text(stmt, 1, "%\(trimmedNeedle)%", -1, SQLITE_TRANSIENT_FN)
+        }
+        if let cwdFilter {
+            sqlite3_bind_text(stmt, 2, cwdFilter, -1, SQLITE_TRANSIENT_FN)
+        }
+        sqlite3_bind_int(stmt, 3, Int32(max(limit, 0)))
+        sqlite3_bind_int(stmt, 4, Int32(max(offset, 0)))
+
+        let agent = SessionAgent.registered(RegisteredSessionAgent(registration: registration))
+        var entries: [SessionEntry] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if Task.isCancelled { break }
+            guard let idC = sqlite3_column_text(stmt, 0) else { continue }
+            let sessionId = String(cString: idC)
+            let title = sqlite3_column_text(stmt, 1).map { String(cString: $0) } ?? "(untitled)"
+            let cwd = sqlite3_column_text(stmt, 2).map { String(cString: $0) }
+            let activity = sqlite3_column_int64(stmt, 3)
+            entries.append(SessionEntry(
+                id: "\(registration.id):\(sessionId)",
+                agent: agent,
+                sessionId: sessionId,
+                title: title,
+                cwd: cwd,
+                gitBranch: nil,
+                pullRequest: nil,
+                modified: Date(timeIntervalSince1970: TimeInterval(activity)),
+                fileURL: nil,
+                specifics: .registered(registration)
+            ))
+        }
+        return entries
     }
 
     nonisolated private static func loadAntigravityHistoryEntries(
@@ -681,7 +783,7 @@ extension SessionIndexStore {
         switch registration.sessionIdSource {
         case .argvOption:
             needsNativeSessionID = true
-        case .piSessionFile, .grokSessionDirectory:
+        case .piSessionFile, .grokSessionDirectory, .sqliteDatabase:
             needsNativeSessionID = false
         }
         forEachJSONLine(url: url, maxBytes: 512 * 1024) { object in

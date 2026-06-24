@@ -62,12 +62,28 @@ enum RemuxCollabSession {
         }
         var parts = ["ssh", "-t"]
         parts += controlOptionArgs(for: server.sshDestination)
+        if server.usesCloudflared, let cf = cloudflaredBinary() {
+            // Reach hosts behind Cloudflare Access: proxy the SSH connection
+            // through `cloudflared access ssh`. %h expands to the ssh host.
+            parts += ["-o", shellQuote("ProxyCommand=\(cf) access ssh --hostname %h")]
+        }
         if let port = server.port { parts += ["-p", String(port)] }
         if let identity = server.identityFile?.trimmingCharacters(in: .whitespacesAndNewlines), !identity.isEmpty {
             parts += ["-i", shellQuote(identity)]
         }
+        for option in server.sshOptions {
+            let trimmed = option.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { parts += ["-o", shellQuote(trimmed)] }
+        }
         parts.append(shellQuote(server.sshDestination))
         return parts.joined(separator: " ")
+    }
+
+    /// Resolves the `cloudflared` CLI, or nil if not installed.
+    static func cloudflaredBinary() -> String? {
+        let candidates = ["/opt/homebrew/bin/cloudflared", "/usr/local/bin/cloudflared",
+                          (NSHomeDirectory() as NSString).appendingPathComponent(".local/bin/cloudflared")]
+        return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
     /// Wraps a command so the terminal pane stays open if it exits non-zero,

@@ -2417,6 +2417,11 @@ final class Workspace: Identifiable, ObservableObject {
     @Published private(set) var latestConversationMessage: String?
     @Published private(set) var latestSubmittedMessage: String?
     @Published private(set) var latestSubmittedAt: Date?
+    /// remux: the `ssh`/attach command this workspace was opened with from the
+    /// Server Library, reused so a new tab (⌘T) opens another session on the same
+    /// server. nil for ordinary local workspaces.
+    var remuxReconnectCommand: String?
+
     var logEntries: [SidebarLogEntry] {
         get { sidebarMetadata.logEntries }
         set { sidebarMetadata.logEntries = newValue }
@@ -7132,7 +7137,11 @@ final class Workspace: Identifiable, ObservableObject {
         let requestedInitialCommand = initialCommand?.trimmingCharacters(in: .whitespacesAndNewlines)
         let explicitInitialCommand = (requestedInitialCommand?.isEmpty == false) ? requestedInitialCommand : nil
         let remoteTerminalStartupCommand = suppressWorkspaceRemoteStartupCommand ? nil : remoteTerminalStartupCommand()
-        let startupCommand = explicitInitialCommand ?? remoteTerminalStartupCommand
+        // remux: when this workspace was opened by connecting to a Server Library
+        // entry (plain `ssh -t …`, no remoteConfiguration), reuse that same command
+        // for new tabs so ⌘T opens another session on the same server.
+        let remuxReconnect = suppressWorkspaceRemoteStartupCommand ? nil : remuxReconnectCommand
+        let startupCommand = explicitInitialCommand ?? remoteTerminalStartupCommand ?? remuxReconnect
         let remoteStartupCommandForEnvironment = explicitInitialCommand == nil ? remoteTerminalStartupCommand : nil
         let effectiveStartupEnvironment = terminalStartupEnvironment(
             base: startupEnvironmentMergingWorkspaceEnvironment(startupEnvironment),

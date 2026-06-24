@@ -29,6 +29,8 @@ struct ServerLibraryView: View {
     @State private var tmateServer: SavedServer?
     /// Server for which the remote-sessions browser is presented.
     @State private var sessionsServer: SavedServer?
+    /// Server for which the Rooms (shared workspaces) panel is presented.
+    @State private var roomsServer: SavedServer?
     /// Whether the "Join Shared Session" sheet is presented.
     @State private var isJoining = false
 
@@ -181,6 +183,9 @@ struct ServerLibraryView: View {
         .sheet(item: $sessionsServer) { server in
             RemoteSessionsSheet(server: server)
         }
+        .sheet(item: $roomsServer) { server in
+            RoomsSheet(server: server)
+        }
     }
 
     // MARK: - List
@@ -235,6 +240,9 @@ struct ServerLibraryView: View {
             },
             sessions: { [weak store] in
                 sessionsServer = store?.server(id: id)
+            },
+            rooms: { [weak store] in
+                roomsServer = store?.server(id: id)
             },
             browseFiles: { [weak store] in
                 if let server = store?.server(id: id) { FileTransferWindow.open(server: server) }
@@ -320,6 +328,7 @@ private struct ServerRowActions {
     let shareBeyondTailnet: () -> Void
     let upload: ([URL]) -> Void
     let sessions: () -> Void
+    let rooms: () -> Void
     let browseFiles: () -> Void
 }
 
@@ -449,6 +458,11 @@ private struct ServerRow: View {
                 Label(String(localized: "serverLibrary.row.connect", defaultValue: "Connect"), systemImage: "bolt.horizontal")
             }
             Button {
+                actions.rooms()
+            } label: {
+                Label(String(localized: "serverLibrary.row.rooms", defaultValue: "Rooms… (shared workspaces)"), systemImage: "rectangle.3.group")
+            }
+            Button {
                 actions.sessions()
             } label: {
                 Label(String(localized: "serverLibrary.row.sessions", defaultValue: "Sessions… (tmux / tmate)"), systemImage: "list.bullet.rectangle")
@@ -505,6 +519,7 @@ private struct ServerEditorSheet: View {
     @State private var identityFile: String
     @State private var group: String
     @State private var useTailscaleSSH: Bool
+    @State private var useCloudflared: Bool
 
     init(server: SavedServer?, onSave: @escaping (SavedServer) -> Void) {
         self.existingID = server?.id
@@ -517,6 +532,7 @@ private struct ServerEditorSheet: View {
         _identityFile = State(initialValue: server?.identityFile ?? "")
         _group = State(initialValue: server?.group ?? "")
         _useTailscaleSSH = State(initialValue: server?.usesTailscaleSSH ?? false)
+        _useCloudflared = State(initialValue: server?.usesCloudflared ?? false)
     }
 
     private var isEditing: Bool { existingID != nil }
@@ -573,6 +589,15 @@ private struct ServerEditorSheet: View {
                     }
                 }
                 .disabled(!TailscaleDiscovery.isAvailable)
+                Toggle(isOn: $useCloudflared) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(String(localized: "serverLibrary.editor.cloudflared", defaultValue: "Connect via Cloudflare Tunnel"))
+                        Text(String(localized: "serverLibrary.editor.cloudflaredHint", defaultValue: "cloudflared access ssh — for hosts behind Cloudflare Access"))
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .disabled(RemuxCollabSession.cloudflaredBinary() == nil)
             }
             .formStyle(.grouped)
 
@@ -617,6 +642,7 @@ private struct ServerEditorSheet: View {
             sshOptions: original?.sshOptions ?? [],
             sshConfigAlias: original?.sshConfigAlias,
             useTailscaleSSH: useTailscaleSSH ? true : nil,
+            useCloudflared: useCloudflared ? true : nil,
             group: trimmedGroup.isEmpty ? nil : trimmedGroup,
             iconName: original?.iconName,
             color: original?.color,

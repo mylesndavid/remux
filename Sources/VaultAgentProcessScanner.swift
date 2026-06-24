@@ -898,6 +898,13 @@ private extension CmuxVaultAgentSessionIDSource {
                 return VaultAgentSessionIDResolution(sessionId: session, source: .explicit)
             }
             return nil
+        case .sqliteDatabase:
+            // Session IDs come from the DB listing, not live-process inference.
+            if let session = process.arguments.nonOptionValue(afterOption: "-r")
+                ?? process.arguments.nonOptionValue(afterOption: "--resume") {
+                return VaultAgentSessionIDResolution(sessionId: session, source: .explicit)
+            }
+            return nil
         }
     }
 }

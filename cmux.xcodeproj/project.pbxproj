@@ -618,6 +618,7 @@
 		E30790000000000000000004 /* RemotePTYBridgeStrings+App.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30790000000000000000003 /* RemotePTYBridgeStrings+App.swift */; };
 		A5001640 /* RemoteRelayZshBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5001641 /* RemoteRelayZshBootstrap.swift */; };
 		B9000027A1B2C3D4E5F60719 /* RemoteRelayZshBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5001641 /* RemoteRelayZshBootstrap.swift */; };
+		082D1B2D890F1BF6BD7B4A5C /* RemoteRooms.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEFE59AB338601D9E7B9D7AB /* RemoteRooms.swift */; };
 		REE0CA0000000000000000D2 /* RemoteRouteSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = REE0CA0000000000000000D1 /* RemoteRouteSpec.swift */; };
 		REE0CA0000000000000000A2 /* RemotesClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = REE0CA0000000000000000A1 /* RemotesClient.swift */; };
 		REE0CA0000000000000000B2 /* RemotesClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = REE0CA0000000000000000B1 /* RemotesClientTests.swift */; };
@@ -690,6 +691,8 @@
 		B37A0000000000000000000D /* RightSidebarRemoteCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37A0000000000000000000E /* RightSidebarRemoteCommand.swift */; };
 		5F5553CB5553CB5553CB0001 /* RightSidebarRemoteCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5553CB5553CB5553CB0002 /* RightSidebarRemoteCommandTests.swift */; };
 		FE0031A3 /* RightSidebarToolPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0030A3 /* RightSidebarToolPanel.swift */; };
+		44E8B5C691A9ED756876AD34 /* RoomsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D47852C0AB26D28741FF10 /* RoomsSheet.swift */; };
+		56C8D47200E04BA87A08FD19 /* RoomsSidebarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0F00A6AE6D37B99B9555E32 /* RoomsSidebarPanel.swift */; };
 		C46790000000000000000005 /* RosettaNativeRelaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = C46790000000000000000006 /* RosettaNativeRelaunch.swift */; };
 		C46790000000000000000007 /* RosettaNativeRelaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C46790000000000000000008 /* RosettaNativeRelaunchTests.swift */; };
 		F5310000A1B2C3D4E5F60718 /* RovoDevHookConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5310001A1B2C3D4E5F60718 /* RovoDevHookConfigTests.swift */; };
@@ -768,6 +771,7 @@
 		C0DE48000000000000000001 /* SidebarProviderMenuRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE48000000000000000002 /* SidebarProviderMenuRegressionTests.swift */; };
 		B9000130A1B2C3D4E5F60719 /* SidebarPullRequestInteractivityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9000131A1B2C3D4E5F60719 /* SidebarPullRequestInteractivityUITests.swift */; };
 		B8F266236A1A3D9A45BD840F /* SidebarResizeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 818DBCD4AB69EB72573E8138 /* SidebarResizeUITests.swift */; };
+		F7995F8987D0B2A430A2A764 /* SidebarRoomsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E529FBA0CF067E09CCF71869 /* SidebarRoomsSection.swift */; };
 		C0DE35010000000000000001 /* SidebarScrim.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE35010000000000000002 /* SidebarScrim.swift */; };
 		C9A57513C9A57513C9A57513 /* SidebarScrollViewConfiguratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A57514C9A57514C9A57514 /* SidebarScrollViewConfiguratorTests.swift */; };
 		E62155868BB29FEB5DAAAF25 /* SidebarSelectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD52285508B1D6A9875E7B3 /* SidebarSelectionState.swift */; };
@@ -1624,6 +1628,7 @@
 		D0C0D0C0D0C0D0C0D0C00004 /* RemoteLoopbackRuntimeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLoopbackRuntimeBridge.swift; sourceTree = "<group>"; };
 		E30790000000000000000003 /* RemotePTYBridgeStrings+App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemotePTYBridgeStrings+App.swift"; sourceTree = "<group>"; };
 		A5001641 /* RemoteRelayZshBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRelayZshBootstrap.swift; sourceTree = "<group>"; };
+		AEFE59AB338601D9E7B9D7AB /* RemoteRooms.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteRooms.swift; sourceTree = "<group>"; };
 		REE0CA0000000000000000D1 /* RemoteRouteSpec.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteRouteSpec.swift; sourceTree = "<group>"; };
 		REE0CA0000000000000000A1 /* RemotesClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemotesClient.swift; sourceTree = "<group>"; };
 		REE0CA0000000000000000B1 /* RemotesClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotesClientTests.swift; sourceTree = "<group>"; };
@@ -1696,6 +1701,8 @@
 		B37A0000000000000000000E /* RightSidebarRemoteCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightSidebarRemoteCommand.swift; sourceTree = "<group>"; };
 		5F5553CB5553CB5553CB0002 /* RightSidebarRemoteCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightSidebarRemoteCommandTests.swift; sourceTree = "<group>"; };
 		FE0030A3 /* RightSidebarToolPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightSidebarToolPanel.swift; sourceTree = "<group>"; };
+		61D47852C0AB26D28741FF10 /* RoomsSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoomsSheet.swift; sourceTree = "<group>"; };
+		A0F00A6AE6D37B99B9555E32 /* RoomsSidebarPanel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoomsSidebarPanel.swift; sourceTree = "<group>"; };
 		C46790000000000000000006 /* RosettaNativeRelaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/RosettaNativeRelaunch.swift; sourceTree = "<group>"; };
 		C46790000000000000000008 /* RosettaNativeRelaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RosettaNativeRelaunchTests.swift; sourceTree = "<group>"; };
 		F5310001A1B2C3D4E5F60718 /* RovoDevHookConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RovoDevHookConfigTests.swift; sourceTree = "<group>"; };
@@ -1770,6 +1777,7 @@
 		C0DE48000000000000000002 /* SidebarProviderMenuRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarProviderMenuRegressionTests.swift; sourceTree = "<group>"; };
 		B9000131A1B2C3D4E5F60719 /* SidebarPullRequestInteractivityUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarPullRequestInteractivityUITests.swift; sourceTree = "<group>"; };
 		818DBCD4AB69EB72573E8138 /* SidebarResizeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarResizeUITests.swift; sourceTree = "<group>"; };
+		E529FBA0CF067E09CCF71869 /* SidebarRoomsSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SidebarRoomsSection.swift; sourceTree = "<group>"; };
 		C0DE35010000000000000002 /* SidebarScrim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarScrim.swift; sourceTree = "<group>"; };
 		C9A57514C9A57514C9A57514 /* SidebarScrollViewConfiguratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarScrollViewConfiguratorTests.swift; sourceTree = "<group>"; };
 		9AD52285508B1D6A9875E7B3 /* SidebarSelectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSelectionState.swift; sourceTree = "<group>"; };
@@ -3121,6 +3129,10 @@
 				E5EA8FD947E64A8051A08F58 /* FileItem.swift */,
 				6AF2D7A63DCBCA1F85BCB5B2 /* SFTPTransfer.swift */,
 				33D660CB2AEF04DAB9BAC52E /* FileTransferWindow.swift */,
+				AEFE59AB338601D9E7B9D7AB /* RemoteRooms.swift */,
+				61D47852C0AB26D28741FF10 /* RoomsSheet.swift */,
+				A0F00A6AE6D37B99B9555E32 /* RoomsSidebarPanel.swift */,
+				E529FBA0CF067E09CCF71869 /* SidebarRoomsSection.swift */,
 			);
 			name = ServerLibrary;
 			path = ServerLibrary;
@@ -3881,6 +3893,7 @@
 				D0C0D0C0D0C0D0C0D0C00003 /* RemoteLoopbackRuntimeBridge.swift in Sources */,
 				E30790000000000000000004 /* RemotePTYBridgeStrings+App.swift in Sources */,
 				A5001640 /* RemoteRelayZshBootstrap.swift in Sources */,
+				082D1B2D890F1BF6BD7B4A5C /* RemoteRooms.swift in Sources */,
 				REE0CA0000000000000000D2 /* RemoteRouteSpec.swift in Sources */,
 				REE0CA0000000000000000A2 /* RemotesClient.swift in Sources */,
 				BFD87AF103CF1537D2E1AF8B /* RemoteSessions.swift in Sources */,
@@ -3935,6 +3948,8 @@
 				FE003103 /* RightSidebarPanelView.swift in Sources */,
 				B37A0000000000000000000D /* RightSidebarRemoteCommand.swift in Sources */,
 				FE0031A3 /* RightSidebarToolPanel.swift in Sources */,
+				44E8B5C691A9ED756876AD34 /* RoomsSheet.swift in Sources */,
+				56C8D47200E04BA87A08FD19 /* RoomsSidebarPanel.swift in Sources */,
 				C46790000000000000000005 /* RosettaNativeRelaunch.swift in Sources */,
 				FE003105 /* RovoDevIndex.swift in Sources */,
 				FE003107 /* RovoDevTranscriptPreview.swift in Sources */,
@@ -3975,6 +3990,7 @@
 				C0DE5F210000000000000001 /* SidebarMetadataMarkdownRenderer.swift in Sources */,
 				EA1F00000000000000000001 /* SidebarPathFormatter.swift in Sources */,
 				C0DEF0A30000000000000001 /* SidebarPortDisplayText.swift in Sources */,
+				F7995F8987D0B2A430A2A764 /* SidebarRoomsSection.swift in Sources */,
 				C0DE35010000000000000001 /* SidebarScrim.swift in Sources */,
 				E62155868BB29FEB5DAAAF25 /* SidebarSelectionState.swift in Sources */,
 				F57072635F25EBCA741E125D /* SidebarState.swift in Sources */,

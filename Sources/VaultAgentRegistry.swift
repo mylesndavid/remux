@@ -185,6 +185,20 @@ struct CmuxVaultAgentRegistration: Codable, Hashable, Sendable {
             sessionDirectory: "~/.grok/sessions"
         )
     }
+
+    static var builtInDevin: CmuxVaultAgentRegistration {
+        CmuxVaultAgentRegistration(
+            id: "devin",
+            name: "Devin",
+            iconAssetName: "AgentIcons/Devin",
+            detect: CmuxVaultAgentDetectRule(processNames: ["devin"], argvContains: ["devin"]),
+            sessionIdSource: .sqliteDatabase,
+            resumeCommand: "{{executable}} -r {{sessionId}}",
+            cwd: .preserve,
+            // SQLite DB (table `sessions`), not a directory of files.
+            sessionDirectory: "~/.local/share/devin/cli/sessions.db"
+        )
+    }
 }
 
 struct CmuxVaultAgentDetectRule: Codable, Hashable, Sendable {
@@ -246,6 +260,9 @@ enum CmuxVaultAgentSessionIDSource: Codable, Hashable, Sendable {
     case argvOption(String)
     case piSessionFile
     case grokSessionDirectory
+    /// Sessions live in a SQLite database (e.g. Devin); `sessionDirectory` points
+    /// at the .db file and the Vault queries it instead of scanning files.
+    case sqliteDatabase
 
     private enum CodingKeys: String, CodingKey {
         case type, argvOption
@@ -260,6 +277,8 @@ enum CmuxVaultAgentSessionIDSource: Codable, Hashable, Sendable {
                 self = .piSessionFile
             case "grokSessionDirectory", "grok-session-directory":
                 self = .grokSessionDirectory
+            case "sqliteDatabase", "sqlite-database", "sqlite":
+                self = .sqliteDatabase
             default:
                 guard !trimmed.isEmpty else {
                     throw DecodingError.dataCorrupted(
@@ -296,6 +315,8 @@ enum CmuxVaultAgentSessionIDSource: Codable, Hashable, Sendable {
                 )
             }
             self = .grokSessionDirectory
+        case "sqliteDatabase", "sqlite-database", "sqlite":
+            self = .sqliteDatabase
         case "argvOption", "argv-option":
             let option = try container.decodeIfPresent(String.self, forKey: .argvOption)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -326,6 +347,8 @@ enum CmuxVaultAgentSessionIDSource: Codable, Hashable, Sendable {
             try container.encode("piSessionFile", forKey: .type)
         case .grokSessionDirectory:
             try container.encode("grokSessionDirectory", forKey: .type)
+        case .sqliteDatabase:
+            try container.encode("sqliteDatabase", forKey: .type)
         }
     }
 }
@@ -402,6 +425,7 @@ struct CmuxVaultAgentRegistry: Sendable {
             CmuxVaultAgentRegistration.builtInOmp,
             CmuxVaultAgentRegistration.builtInAntigravity,
             CmuxVaultAgentRegistration.builtInGrok,
+            CmuxVaultAgentRegistration.builtInDevin,
         ]
         for path in configPaths(homeDirectory: homeDirectory, workingDirectory: workingDirectory, environment: environment, fileManager: fileManager) {
             guard let config = decodeConfig(at: path, fileManager: fileManager) else { continue }

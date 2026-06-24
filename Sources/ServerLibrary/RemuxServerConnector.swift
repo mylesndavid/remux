@@ -71,13 +71,17 @@ enum RemuxServerConnector {
         // the pane open on error so auth prompts / failures are visible. (The
         // heavier `configureRemoteConnection` cmuxd path only suits cmux's own
         // cloud VMs and fails on ordinary servers.)
+        let command = RemuxCollabSession.interactiveCommand(server: server)
         let workspace = tabManager.addWorkspace(
             title: title,
-            initialTerminalCommand: RemuxCollabSession.interactiveCommand(server: server),
+            initialTerminalCommand: command,
             inheritWorkingDirectory: false,
             select: select,
             autoWelcomeIfNeeded: false
         )
+        // Reuse this command for new tabs (⌘T) so they open another session on
+        // the same server instead of a local shell.
+        workspace.remuxReconnectCommand = command
 
         // Record the connection attempt for sort-by-recent. We stamp on initiate
         // (not on a confirmed handshake) because the connector has no async

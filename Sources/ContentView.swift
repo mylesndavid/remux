@@ -12374,14 +12374,17 @@ private struct SidebarFooter: View {
     let onSendFeedback: () -> Void
 
     var body: some View {
+        VStack(spacing: 0) {
+            SidebarRoomsSection()
 #if DEBUG
-        SidebarDevFooter(updateViewModel: updateViewModel, fileExplorerState: fileExplorerState, onSendFeedback: onSendFeedback)
+            SidebarDevFooter(updateViewModel: updateViewModel, fileExplorerState: fileExplorerState, onSendFeedback: onSendFeedback)
 #else
-        SidebarFooterButtons(updateViewModel: updateViewModel, fileExplorerState: fileExplorerState, onSendFeedback: onSendFeedback)
-            .padding(.leading, 6)
-            .padding(.trailing, 10)
-            .padding(.bottom, 6)
+            SidebarFooterButtons(updateViewModel: updateViewModel, fileExplorerState: fileExplorerState, onSendFeedback: onSendFeedback)
+                .padding(.leading, 6)
+                .padding(.trailing, 10)
+                .padding(.bottom, 6)
 #endif
+        }
     }
 }
 

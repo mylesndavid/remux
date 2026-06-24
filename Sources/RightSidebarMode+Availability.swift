@@ -15,6 +15,8 @@ extension RightSidebarMode {
             return .dock
         case "servers":
             return .servers
+        case "rooms":
+            return .rooms
         default:
             return nil
         }
@@ -42,6 +44,11 @@ extension RightSidebarMode {
         switch self {
         case .files, .find, .sessions, .servers:
             return true
+        case .rooms:
+            // Rooms lives in the LEFT sidebar as a collapsible section, not as a
+            // right-sidebar mode tab. Keep the case (other switches reference it)
+            // but never surface it in the right mode bar.
+            return false
         case .feed:
             return feedEnabled
         case .dock:

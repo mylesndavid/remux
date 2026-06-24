@@ -19,6 +19,7 @@ nonisolated enum RightSidebarMode: String, CaseIterable, Codable, Sendable {
     case feed
     case dock
     case servers
+    case rooms
 
     var label: String {
         switch self {
@@ -28,6 +29,7 @@ nonisolated enum RightSidebarMode: String, CaseIterable, Codable, Sendable {
         case .feed: return String(localized: "rightSidebar.mode.feed", defaultValue: "Feed")
         case .dock: return String(localized: "rightSidebar.mode.dock", defaultValue: "Dock")
         case .servers: return String(localized: "rightSidebar.mode.servers", defaultValue: "Servers")
+        case .rooms: return String(localized: "rightSidebar.mode.rooms", defaultValue: "Rooms")
         }
     }
 
@@ -39,6 +41,7 @@ nonisolated enum RightSidebarMode: String, CaseIterable, Codable, Sendable {
         case .feed: return "dot.radiowaves.left.and.right"
         case .dock: return "dock.rectangle"
         case .servers: return "server.rack"
+        case .rooms: return "rectangle.3.group"
         }
     }
 
@@ -50,6 +53,7 @@ nonisolated enum RightSidebarMode: String, CaseIterable, Codable, Sendable {
         case .feed: return .switchRightSidebarToFeed
         case .dock: return .switchRightSidebarToDock
         case .servers: return nil
+        case .rooms: return nil
         }
     }
 }
@@ -74,7 +78,7 @@ nonisolated enum FileExplorerRootSyncPolicy {
         switch mode {
         case .files, .find:
             return true
-        case .sessions, .feed, .dock, .servers:
+        case .sessions, .feed, .dock, .servers, .rooms:
             return false
         }
     }
@@ -485,6 +489,8 @@ struct RightSidebarPanelView: View {
                 DockPanelView(rootDirectory: dockRootDirectory, workspaceId: workspaceId, store: dockStore)
             case .servers:
                 ServerLibraryView(store: ServerLibraryStore.shared)
+            case .rooms:
+                RoomsSidebarPanel()
             }
         } else {
             Color.clear

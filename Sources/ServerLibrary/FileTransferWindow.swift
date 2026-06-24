@@ -132,6 +132,52 @@ final class FilePaneModel: ObservableObject {
         let parent = isRemote ? RemoteFiles.parentPath(path) : LocalFiles.parentPath(path)
         await load(path: parent)
     }
+
+    private var statusClearToken = 0
+
+    /// Sets the transfer status line; if `autoClear`, wipes it after a few seconds
+    /// (so success confirmations don't linger forever).
+    func setStatus(_ text: String?, autoClear: Bool = false) {
+        status = text
+        statusClearToken += 1
+        guard autoClear, text != nil else { return }
+        let token = statusClearToken
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            guard let self, self.statusClearToken == token else { return }
+            self.status = nil
+        }
+    }
+}
+
+// MARK: - Transfer engine (shared by drag-drop and the context menu)
+
+@MainActor
+enum FileTransferEngine {
+    /// Copies `item` from one pane to the other (upload or download as needed).
+    /// Status + refresh happen on the destination pane. Same-machine copies are
+    /// not supported here (cross-machine only).
+    static func copy(_ item: FileItem, from src: FilePaneModel, to dst: FilePaneModel) {
+        if !src.isRemote, dst.isRemote, let server = dst.server {
+            let localPath = LocalFiles.childPath(src.path, item.name)
+            let destDir = dst.path
+            dst.setStatus("Copying \(item.name)…")
+            Task {
+                let ok = await SFTPTransfer.upload(localPaths: [localPath], to: server, remoteDirectory: destDir)
+                dst.setStatus(ok ? "✓ Copied \(item.name)" : "Copy failed — connect to the server first if it needs a password.", autoClear: ok)
+                await dst.refresh()
+            }
+        } else if src.isRemote, !dst.isRemote, let server = src.server {
+            let remotePath = RemoteFiles.childPath(src.path, item.name)
+            let destDir = dst.path
+            dst.setStatus("Copying \(item.name)…")
+            Task {
+                let ok = await SFTPTransfer.download(remotePaths: [remotePath], from: server, localDirectory: destDir)
+                dst.setStatus(ok ? "✓ Copied \(item.name)" : "Copy failed — connect to the server first if it needs a password.", autoClear: ok)
+                await dst.refresh()
+            }
+        }
+    }
 }
 
 // MARK: - Dual pane
@@ -148,9 +194,9 @@ struct DualPaneFileBrowser: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            FilePaneView(model: local)
+            FilePaneView(model: local, otherPane: remote)
             Divider()
-            FilePaneView(model: remote)
+            FilePaneView(model: remote, otherPane: local)
         }
         .frame(minWidth: 760, minHeight: 380)
         .task {
@@ -164,11 +210,24 @@ struct DualPaneFileBrowser: View {
 
 struct FilePaneView: View {
     @ObservedObject var model: FilePaneModel
+    @ObservedObject var otherPane: FilePaneModel
     @State private var dropTargeted = false
+    @State private var searchText = ""
+    @State private var showHidden = false
 
     private var dropTypes: [UTType] {
         model.isRemote ? [UTType.fileURL] : [UTType.utf8PlainText, UTType.plainText]
     }
+
+    /// Items after applying the hide-dotfiles default and the search filter.
+    private var visibleItems: [FileItem] {
+        model.items.filter { item in
+            (showHidden || !item.name.hasPrefix(".")) &&
+            (searchText.isEmpty || item.name.localizedCaseInsensitiveContains(searchText))
+        }
+    }
+
+    private var canCopyToOther: Bool { model.isRemote != otherPane.isRemote }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -199,6 +258,11 @@ struct FilePaneView: View {
                 Image(systemName: model.isRemote ? "server.rack" : "desktopcomputer")
                 Text(model.title).font(.system(size: 13, weight: .semibold))
                 Spacer()
+                Button { showHidden.toggle() } label: {
+                    Image(systemName: showHidden ? "eye" : "eye.slash")
+                }
+                .buttonStyle(.borderless)
+                .help(showHidden ? "Hide dotfiles" : "Show hidden (dot) files")
                 Button { Task { await model.up() } } label: { Image(systemName: "chevron.up") }
                     .buttonStyle(.borderless).help("Up")
                 Button { Task { await model.refresh() } } label: { Image(systemName: "arrow.clockwise") }
@@ -209,6 +273,18 @@ struct FilePaneView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1).truncationMode(.head)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").font(.system(size: 10)).foregroundStyle(.secondary)
+                TextField("Filter", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                if !searchText.isEmpty {
+                    Button { searchText = "" } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.borderless).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
     }
@@ -247,7 +323,13 @@ struct FilePaneView: View {
         } else {
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(model.items) { item in
+                    if visibleItems.isEmpty {
+                        Text(searchText.isEmpty ? "Empty folder" : "No matches")
+                            .font(.system(size: 11)).foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                    }
+                    ForEach(visibleItems) { item in
                         rowView(item)
                     }
                 }
@@ -273,6 +355,20 @@ struct FilePaneView: View {
         }
         .buttonStyle(.plain)
         .onDrag { dragProvider(item) }
+        .contextMenu {
+            if canCopyToOther {
+                Button {
+                    FileTransferEngine.copy(item, from: model, to: otherPane)
+                } label: {
+                    Label("Copy to \(otherPane.title)", systemImage: model.isRemote ? "arrow.down.circle" : "arrow.up.circle")
+                }
+            }
+            if item.isDirectory {
+                Button { Task { await model.navigate(into: item) } } label: {
+                    Label("Open", systemImage: "folder")
+                }
+            }
+        }
     }
 
     // MARK: - Drag out
@@ -293,10 +389,10 @@ struct FilePaneView: View {
             loadFileURLs(providers) { urls in
                 guard !urls.isEmpty else { return }
                 let dir = model.path
-                model.status = "Uploading \(urls.count) item(s)…"
+                model.setStatus("Uploading \(urls.count) item(s)…")
                 Task {
                     let ok = await SFTPTransfer.upload(localPaths: urls.map { $0.path }, to: server, remoteDirectory: dir)
-                    model.status = ok ? nil : "Upload failed (connect to the server first if it needs a password)."
+                    model.setStatus(ok ? "✓ Uploaded \(urls.count) item(s)" : "Upload failed — connect to the server first if it needs a password.", autoClear: ok)
                     await model.refresh()
                 }
             }
@@ -305,10 +401,10 @@ struct FilePaneView: View {
                 let parsed = payloads.compactMap(parseRemotePayload)
                 guard let server = parsed.first?.server, !parsed.isEmpty else { return }
                 let dir = model.path
-                model.status = "Downloading \(parsed.count) item(s)…"
+                model.setStatus("Downloading \(parsed.count) item(s)…")
                 Task {
                     let ok = await SFTPTransfer.download(remotePaths: parsed.map { $0.path }, from: server, localDirectory: dir)
-                    model.status = ok ? nil : "Download failed."
+                    model.setStatus(ok ? "✓ Downloaded \(parsed.count) item(s)" : "Download failed — connect to the server first if it needs a password.", autoClear: ok)
                     await model.refresh()
                 }
             }

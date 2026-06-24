@@ -39,6 +39,11 @@ public struct SavedServer: Codable, Identifiable, Sendable, Equatable, Hashable 
     /// NAT traversal. Set automatically for servers imported from Tailscale.
     /// Optional for Codable forward/backward compatibility (`nil` == off).
     public var useTailscaleSSH: Bool?
+    /// When `true`, connect through a Cloudflare Tunnel by injecting
+    /// `ProxyCommand=cloudflared access ssh --hostname %h` — reaches hosts behind
+    /// Cloudflare Access (no public IP), authenticated by your Zero Trust policy.
+    /// Optional for Codable compatibility (`nil` == off).
+    public var useCloudflared: Bool?
     /// Optional grouping/folder name for the library sidebar.
     public var group: String?
     /// Optional SF Symbol / asset name for the row icon.
@@ -60,6 +65,7 @@ public struct SavedServer: Codable, Identifiable, Sendable, Equatable, Hashable 
         sshOptions: [String] = [],
         sshConfigAlias: String? = nil,
         useTailscaleSSH: Bool? = nil,
+        useCloudflared: Bool? = nil,
         group: String? = nil,
         iconName: String? = nil,
         color: String? = nil,
@@ -74,6 +80,7 @@ public struct SavedServer: Codable, Identifiable, Sendable, Equatable, Hashable 
         self.sshOptions = sshOptions
         self.sshConfigAlias = sshConfigAlias
         self.useTailscaleSSH = useTailscaleSSH
+        self.useCloudflared = useCloudflared
         self.group = group
         self.iconName = iconName
         self.color = color
@@ -118,6 +125,9 @@ public struct SavedServer: Codable, Identifiable, Sendable, Equatable, Hashable 
 
     /// Whether this server connects via Tailscale SSH (`nil` == off).
     public var usesTailscaleSSH: Bool { useTailscaleSSH ?? false }
+
+    /// Whether this server connects through a Cloudflare Tunnel (`nil` == off).
+    public var usesCloudflared: Bool { useCloudflared ?? false }
 
     /// The shell command that opens this server in a terminal via Tailscale SSH:
     /// `<tailscale> ssh <dest>`. `tailscaleBinary` is the resolved CLI path
