@@ -49,7 +49,42 @@ enum RemuxCollabSession {
     nonisolated static func controlOptionArgs(for destination: String) -> [String] {
         ["-o", "ControlMaster=auto",
          "-o", "ControlPath=\(controlPath(for: destination))",
-         "-o", "ControlPersist=30m"]
+         "-o", "ControlPersist=30m",
+         // Keepalives so a connection that dies silently (laptop sleep, wifi
+         // handoff) is detected within ~45s and the master tears itself down,
+         // instead of lingering as a stale socket that hangs the next reconnect.
+         "-o", "ServerAliveInterval=15",
+         "-o", "ServerAliveCountMax=3"]
+    }
+
+    /// Tells any lingering SSH ControlMaster for `destinations` to exit
+    /// (best-effort, off the main thread). Run after the machine wakes: a master
+    /// whose TCP died during sleep can otherwise sit as a stale `/tmp/rmcm-*.sock`
+    /// that hangs or silently breaks the next reconnect — the password-auth Mac
+    /// mini is hit hardest because it relies on that master to avoid re-prompting.
+    /// `ssh -O exit` talks to the master over its local control channel, so it
+    /// works even when the master's network connection is wedged. Only acts on
+    /// destinations whose control socket actually exists (i.e. were connected).
+    nonisolated static func resetControlMasters(destinations: [String]) {
+        let targets = destinations
+            .map { (destination: $0, path: controlPath(for: $0)) }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+        guard !targets.isEmpty else { return }
+        DispatchQueue.global(qos: .utility).async {
+            for target in targets {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
+                process.arguments = ["-O", "exit", "-o", "ControlPath=\(target.path)", target.destination]
+                process.standardOutput = FileHandle.nullDevice
+                process.standardError = FileHandle.nullDevice
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                } catch {
+                    // Best-effort cleanup; ServerAliveInterval reaps a wedged master too.
+                }
+            }
+        }
     }
 
     /// The base SSH invocation (no remote command) that opens an interactive
@@ -92,9 +127,39 @@ enum RemuxCollabSession {
         command + "; __rc=$?; if [ \"$__rc\" -ne 0 ]; then printf '\\n[remux] connection closed (exit %s). Press Enter to close.\\n' \"$__rc\"; read -r _; fi"
     }
 
-    /// Terminal command to open an interactive shell on `server`.
+    /// Wraps a persistent SSH+tmux invocation in a self-healing reconnect loop. The
+    /// whole point of a tmux-backed session is that it survives server-side; this
+    /// makes the *pane* survive too: when the connection drops (laptop sleep, wifi
+    /// handoff, server reboot) it automatically re-attaches to the still-running
+    /// tmux session instead of dying at a dead prompt that the user then closes —
+    /// the "Mac mini session disappears when I close my laptop" bug. A clean tmux
+    /// detach or shell exit (status 0) closes the pane normally; Ctrl-C stops
+    /// reconnecting; after ~20 fast failures it waits for the user instead of
+    /// spinning forever against a host that is gone.
+    static func reconnectingCommand(baseSSH: String, remoteCommand: String) -> String {
+        let connect = "\(baseSSH) \(shellQuote(remoteCommand))"
+        return "__n=0; trap 'exit 0' INT; "
+            + "while :; do \(connect); __rc=$?; "
+            + "[ \"$__rc\" -eq 0 ] && break; "
+            + "__n=$((__n + 1)); "
+            + "if [ \"$__n\" -ge 20 ]; then "
+            + "printf '\\n[remux] still disconnected (exit %s). Press Enter to retry or Ctrl-C to close.\\n' \"$__rc\"; "
+            + "read -r _ || exit 0; __n=0; continue; fi; "
+            + "printf '\\n[remux] reconnecting in 3s (exit %s, Ctrl-C to close)...\\n' \"$__rc\"; "
+            + "sleep 3; done"
+    }
+
+    /// Terminal command to open a **persistent** shell on `server`: attaches (or
+    /// creates) a stable tmux session on the box, so the session keeps running
+    /// server-side even when remux is closed, goes idle, or the network drops, and
+    /// the pane auto-reconnects to it (see `reconnectingCommand`). Falls back to a
+    /// plain login shell on hosts without tmux (the error is shown, not hidden, so
+    /// a missing tmux is visible rather than silently non-persistent). This is what
+    /// makes a server (e.g. the Mac mini) a durable workspace rather than a
+    /// connection that dies with the app.
     static func interactiveCommand(server: SavedServer) -> String {
-        holdOnError(baseSSH(server: server))
+        let remote = "tmux new-session -A -s remux || exec \"${SHELL:-/bin/sh}\" -l"
+        return reconnectingCommand(baseSSH: baseSSH(server: server), remoteCommand: remote)
     }
 
     /// Terminal command that runs an arbitrary (simple, shell-safe) remote command
@@ -104,11 +169,12 @@ enum RemuxCollabSession {
     }
 
     /// Terminal command that attaches to (or creates) the shared tmux session
-    /// `session` on `server`, over the same pty-allocating base SSH.
+    /// `session` on `server`, over the same pty-allocating base SSH, and
+    /// auto-reconnects to it if the connection drops (see `reconnectingCommand`).
     static func attachCommand(server: SavedServer, session rawSession: String) -> String {
         let session = sanitizedSessionName(rawSession)
         let remoteTmux = "tmux new-session -A -s \(session)" // session is shell-safe
-        return holdOnError("\(baseSSH(server: server)) \(remoteTmux)")
+        return reconnectingCommand(baseSSH: baseSSH(server: server), remoteCommand: remoteTmux)
     }
 
     // MARK: - Invite links

@@ -12442,11 +12442,12 @@ private enum SidebarHelpMenuAction {
 }
 
 private struct SidebarHelpMenuButton: View {
-    private let docsURL = URL(string: "https://cmux.com/docs")
-    private let changelogURL = URL(string: "https://cmux.com/docs/changelog")
-    private let githubURL = URL(string: "https://github.com/manaflow-ai/cmux")
-    private let githubIssuesURL = URL(string: "https://github.com/manaflow-ai/cmux/issues")
-    private let discordURL = URL(string: "https://discord.gg/xsgFEVrWCZ")
+    private let docsURL = URL(string: "https://github.com/mylesndavid/remux#readme")
+    private let changelogURL = URL(string: "https://github.com/mylesndavid/remux/blob/main/CHANGELOG.md")
+    private let githubURL = URL(string: "https://github.com/mylesndavid/remux")
+    private let githubIssuesURL = URL(string: "https://github.com/mylesndavid/remux/issues")
+    // remux has no Discord; nil hides the menu item (see the `if discordURL != nil` guard below).
+    private let discordURL: URL? = nil
     private let helpTitle = String(localized: "sidebar.help.button", defaultValue: "Help")
     private let buttonSize: CGFloat = 22
     private let iconSize: CGFloat = 11

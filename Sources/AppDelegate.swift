@@ -3866,6 +3866,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.restartSocketListenerIfEnabled(source: "workspace.didWake")
+                // Clear SSH control masters whose connection died during sleep so
+                // remux server panes reconnect cleanly to their still-running tmux
+                // sessions instead of hanging on a stale socket (the "Mac mini
+                // session disappears when I close my laptop" bug).
+                RemuxCollabSession.resetControlMasters(
+                    destinations: ServerLibraryStore.shared.servers.map(\.sshDestination)
+                )
             }
         }
         lifecycleSnapshotObservers.append(didWakeObserver)

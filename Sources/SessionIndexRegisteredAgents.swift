@@ -478,8 +478,9 @@ extension SessionIndexStore {
 
     /// Lists sessions from a SQLite database (`registration.sessionDirectory`
     /// points at the .db). Expects a `sessions` table with columns
-    /// `id, title, working_directory, last_activity_at, hidden`. Opens a temporary
-    /// copy read-only so a live agent writing to the DB can't lock or be disturbed.
+    /// `id, title, working_directory, last_activity_at, hidden`. Opens the live DB
+    /// read-only (no copy) so even a multi-GB database lists instantly without
+    /// disturbing the writing agent.
     nonisolated static func loadSQLiteSessionEntries(
         registration: CmuxVaultAgentRegistration,
         needle: String,
@@ -492,24 +493,26 @@ extension SessionIndexStore {
         let fm = FileManager.default
         guard fm.fileExists(atPath: dbPath) else { return [] }
 
-        // Snapshot the db (+ -wal/-shm) to a temp dir so we never touch the live file.
-        let tempDir = fm.temporaryDirectory.appendingPathComponent("cmux-vault-sqlite-\(registration.id)-\(abs(dbPath.hashValue))", isDirectory: true)
-        try? fm.removeItem(at: tempDir)
-        guard (try? fm.createDirectory(at: tempDir, withIntermediateDirectories: true)) != nil else { return [] }
-        defer { try? fm.removeItem(at: tempDir) }
-        let tempDB = tempDir.appendingPathComponent("snapshot.db")
-        for suffix in ["", "-wal", "-shm"] {
-            let src = dbPath + suffix
-            guard fm.fileExists(atPath: src) else { continue }
-            try? fm.copyItem(atPath: src, toPath: tempDB.path + suffix)
-        }
-        guard fm.fileExists(atPath: tempDB.path) else { return [] }
-
+        // Open the live DB read-only — never copy it. SQLite allows concurrent
+        // readers on a WAL database without disturbing the writing agent, and
+        // Devin's `sessions.db` can be several GB; the previous "snapshot the whole
+        // file to /tmp first" step took ~9s for a 2.3GB DB, so the Vault scan Task
+        // was cancelled before the copy finished and the list silently showed
+        // nothing. A plain read-only handle sees committed WAL data; `immutable=1`
+        // is the fallback for the no-writer / stale-shm case.
         var db: OpaquePointer?
-        guard sqlite3_open_v2(tempDB.path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK, let db else {
+        if sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY, nil) != SQLITE_OK || db == nil {
             sqlite3_close(db)
-            return []
+            db = nil
+            let immutableURI = "file:\(sqliteURIEncodedPath(dbPath))?immutable=1"
+            guard sqlite3_open_v2(
+                immutableURI, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil
+            ) == SQLITE_OK, db != nil else {
+                sqlite3_close(db)
+                return []
+            }
         }
+        guard let db else { return [] }
         defer { sqlite3_close(db) }
         _ = sqlite3_busy_timeout(db, 100)
 
@@ -563,6 +566,12 @@ extension SessionIndexStore {
             ))
         }
         return entries
+    }
+
+    /// Percent-encodes a filesystem path for use in a SQLite `file:` URI so a path
+    /// containing spaces, `?`, `#`, or `%` opens correctly with `SQLITE_OPEN_URI`.
+    nonisolated private static func sqliteURIEncodedPath(_ path: String) -> String {
+        path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
     }
 
     nonisolated private static func loadAntigravityHistoryEntries(
