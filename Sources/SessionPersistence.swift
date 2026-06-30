@@ -1893,6 +1893,11 @@ struct SessionWorkspaceSnapshot: Codable, Sendable {
     /// `savedServerId`. Both fields must be present for the auto-attach hook in
     /// `Workspace.restoreSessionSnapshot` to fire.
     var tmuxSessionName: String? = nil
+    /// The Server Library connect command (`ssh -t … tmux …`) this workspace was
+    /// opened with. Persisted so reopening remux auto-re-attaches the same remote
+    /// (tmux) session instead of leaving a dead local shell. Optional/`nil` default
+    /// for backward compatibility and local workspaces.
+    var remuxReconnectCommand: String? = nil
 }
 
 extension SessionWorkspaceSnapshot: WorkspaceSessionRemoteRestoreSnapshot {}

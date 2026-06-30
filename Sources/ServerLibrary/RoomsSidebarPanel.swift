@@ -16,6 +16,11 @@ struct RoomsSidebarPanel: View {
     @State private var creating = false
     @State private var newRoomName = ""
     @State private var status: String?
+    @State private var cloudflareShareSocket: String?
+    @State private var tunnelsByRoom: [String: [RemoteTunnels.Tunnel]] = [:]
+    @State private var exposingRoom: String?
+    @State private var exposePort = ""
+    @State private var showLocalRoom = false
 
     private var selectedServer: SavedServer? {
         if let id = selectedServerId, let s = store.server(id: id) { return s }
@@ -35,6 +40,17 @@ struct RoomsSidebarPanel: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task(id: selectedServer?.id) { await reload() }
+        .sheet(isPresented: Binding(
+            get: { cloudflareShareSocket != nil },
+            set: { if !$0 { cloudflareShareSocket = nil } }
+        )) {
+            if let socket = cloudflareShareSocket, let server = selectedServer {
+                CloudflareShareSheet(server: server, roomSocket: socket)
+            }
+        }
+        .sheet(isPresented: $showLocalRoom) {
+            LocalRoomSheet()
+        }
     }
 
     // MARK: - Server selector + create
@@ -58,6 +74,8 @@ struct RoomsSidebarPanel: View {
             Spacer(minLength: 4)
 
             if loading { ProgressView().controlSize(.small) }
+            Button { showLocalRoom = true } label: { Image(systemName: "laptopcomputer") }
+                .buttonStyle(.borderless).controlSize(.small).help("Host a room on this Mac")
             Button { creating.toggle() } label: { Image(systemName: "plus") }
                 .buttonStyle(.borderless).controlSize(.small).help("New room")
                 .disabled(selectedServer == nil)
@@ -140,8 +158,13 @@ struct RoomsSidebarPanel: View {
                 Spacer(minLength: 4)
                 Text(room.attachedClients > 0 ? "\(room.attachedClients)" : "")
                     .font(.system(size: 10)).foregroundStyle(.green)
-                Button { share(room) } label: { Image(systemName: "square.and.arrow.up").font(.system(size: 10)) }
-                    .buttonStyle(.borderless).help("Share room")
+                Menu {
+                    Button { share(room) } label: { Label("Copy room link (same server)", systemImage: "link") }
+                    Button { cloudflareShareSocket = room.socket } label: { Label("Share via Cloudflare (public link)", systemImage: "globe") }
+                } label: {
+                    Image(systemName: "square.and.arrow.up").font(.system(size: 10))
+                }
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("Share room")
                 Button { Task { await addSession(to: room) } } label: { Image(systemName: "plus.circle").font(.system(size: 11)) }
                     .buttonStyle(.borderless).help("New session")
             }
@@ -157,7 +180,55 @@ struct RoomsSidebarPanel: View {
                     Text("No sessions — tap + to add one").font(.system(size: 10)).foregroundStyle(.secondary)
                         .padding(.leading, 30).padding(.vertical, 3)
                 }
+                tunnelsSection(room)
             }
+        }
+    }
+
+    /// Shared port tunnels for the room — a dev server (localhost:PORT) exposed as
+    /// a public URL everyone in the room can open. The pair-programming "see the
+    /// website" piece.
+    @ViewBuilder
+    private func tunnelsSection(_ room: RemoteRooms.Room) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "point.3.filled.connected.trianglepath.dotted").font(.system(size: 9)).foregroundStyle(.secondary)
+            Text("TUNNELS").font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary)
+            Spacer()
+            Button {
+                exposingRoom = (exposingRoom == room.socket) ? nil : room.socket
+            } label: { Image(systemName: "plus").font(.system(size: 9)) }
+                .buttonStyle(.borderless).help("Expose a port (dev server)")
+        }
+        .padding(.leading, 30).padding(.trailing, 10).padding(.top, 4).padding(.bottom, 1)
+
+        ForEach(tunnelsByRoom[room.socket] ?? []) { tunnel in
+            HStack(spacing: 6) {
+                Text(":\(tunnel.port)").font(.system(size: 11, weight: .medium, design: .monospaced))
+                Text(tunnel.url.replacingOccurrences(of: "https://", with: ""))
+                    .font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
+                    .lineLimit(1).truncationMode(.middle)
+                Spacer(minLength: 4)
+                Button { RemoteTunnels.open(tunnel) } label: { Image(systemName: "arrow.up.right.square").font(.system(size: 10)) }
+                    .buttonStyle(.borderless).help("Open in browser")
+                Button(role: .destructive) {
+                    Task { _ = await RemoteTunnels.stop(server: selectedServer!, room: room, tunnel: tunnel); await refreshRoom(room) }
+                } label: { Image(systemName: "stop.circle").font(.system(size: 10)) }
+                    .buttonStyle(.borderless).help("Stop tunnel")
+            }
+            .padding(.leading, 38).padding(.trailing, 10).padding(.vertical, 2)
+        }
+
+        if exposingRoom == room.socket {
+            HStack(spacing: 6) {
+                Text("localhost:").font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
+                TextField("3000", text: $exposePort)
+                    .textFieldStyle(.roundedBorder).font(.system(size: 11, design: .monospaced)).frame(width: 64)
+                    .onSubmit { Task { await exposePortIn(room) } }
+                Button("Expose") { Task { await exposePortIn(room) } }
+                    .controlSize(.small)
+                    .disabled(Int(exposePort.trimmingCharacters(in: .whitespaces)) == nil)
+            }
+            .padding(.leading, 38).padding(.trailing, 10).padding(.vertical, 3)
         }
     }
 
@@ -205,6 +276,23 @@ struct RoomsSidebarPanel: View {
         if let sessions = await RemoteRooms.listSessions(server: server, room: room) {
             sessionsByRoom[room.socket] = sessions
         }
+        if let tunnels = await RemoteTunnels.list(server: server, room: room) {
+            tunnelsByRoom[room.socket] = tunnels
+        }
+    }
+
+    private func exposePortIn(_ room: RemoteRooms.Room) async {
+        guard let server = selectedServer,
+              let port = Int(exposePort.trimmingCharacters(in: .whitespaces)) else { return }
+        exposePort = ""; exposingRoom = nil
+        setStatus("Exposing localhost:\(port)…")
+        switch await RemoteTunnels.expose(server: server, room: room, port: port) {
+        case .ok(let t): setStatus("Tunnel up for :\(port)"); RemoteTunnels.open(t)
+        case .unreachable: setStatus("Couldn't reach the server — connect first if it needs a password.")
+        case .installFailed: setStatus("Couldn't install cloudflared on the box.")
+        case .noURL: setStatus("Tunnel started but Cloudflare returned no URL.")
+        }
+        await refreshRoom(room)
     }
 
     private func createRoom() async {

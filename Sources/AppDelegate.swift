@@ -1240,12 +1240,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// `true` if any URL was a recognizable remux invite (handled or declined).
     @MainActor
     private func handleRemuxInviteURLs(from urls: [URL]) -> Bool {
+        // Cloudflare room invites (remux://join-cf) — clickable link with a scoped key.
+        let cfInvites = urls.compactMap { RemuxCloudflareShare.parseJoinLink($0.absoluteString) }
+        for info in cfInvites where confirmRemuxCloudflareJoin(info) {
+            _ = RemuxCloudflareShare.join(info)
+        }
+
         let invites = urls.compactMap { RemuxCollabSession.parseInvite($0.absoluteString) }
-        guard !invites.isEmpty else { return false }
         for invite in invites where confirmRemuxInvite(invite) {
             _ = RemuxCollabSession.join(invite)
         }
-        return true
+        return !cfInvites.isEmpty || !invites.isEmpty
+    }
+
+    @MainActor
+    private func confirmRemuxCloudflareJoin(_ info: RemuxCloudflareShare.JoinInfo) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "collab.cfInvite.confirmTitle", defaultValue: "Join shared room?")
+        alert.informativeText = String.localizedStringWithFormat(
+            String(localized: "collab.cfInvite.confirmBody", defaultValue: "Connect through a Cloudflare tunnel and join the shared room \u{201C}%@\u{201D}? You'll drop straight into that room and nothing else."),
+            RemoteRooms.displayName(forSocket: info.room)
+        )
+        alert.addButton(withTitle: String(localized: "collab.cfInvite.join", defaultValue: "Join"))
+        alert.addButton(withTitle: String(localized: "collab.cfInvite.cancel", defaultValue: "Cancel"))
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     /// Confirmation prompt before a clicked invite link connects out over SSH.

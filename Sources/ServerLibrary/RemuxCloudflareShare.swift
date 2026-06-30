@@ -75,6 +75,75 @@ enum RemuxCloudflareShare {
         return .success(share)
     }
 
+    // MARK: - Compact invite link (remux://join-cf)
+
+    /// A single clickable invite link. The scoped one-time key rides inside it
+    /// (base64); safe to share because the key is forced-command-locked to this
+    /// room only. The friend's remux opens it → writes the key, connects, lands
+    /// in the room. Much cleaner than pasting a shell command.
+    static func joinLink(_ share: Share) -> String {
+        var c = URLComponents()
+        c.scheme = "remux"
+        c.host = "join-cf"
+        let keyB64 = Data(share.privateKey.utf8).base64EncodedString()
+        c.queryItems = [
+            URLQueryItem(name: "h", value: share.cfHostname),
+            URLQueryItem(name: "u", value: share.user),
+            URLQueryItem(name: "room", value: share.roomSocket),
+            URLQueryItem(name: "k", value: keyB64),
+        ]
+        return c.url?.absoluteString ?? ""
+    }
+
+    struct JoinInfo: Equatable {
+        let cfHostname: String
+        let user: String
+        let room: String
+        let privateKey: String
+    }
+
+    /// Parses a `remux://join-cf?...` link. Returns nil if it isn't one.
+    static func parseJoinLink(_ raw: String) -> JoinInfo? {
+        guard let c = URLComponents(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
+              c.scheme?.lowercased() == "remux",
+              (c.host?.lowercased() == "join-cf" || c.path.contains("join-cf")) else { return nil }
+        let items = c.queryItems ?? []
+        func v(_ n: String) -> String? { items.first { $0.name == n }?.value }
+        guard let h = v("h"), !h.isEmpty, let u = v("u"), !u.isEmpty,
+              let keyB64 = v("k"), let keyData = Data(base64Encoded: keyB64),
+              let key = String(data: keyData, encoding: .utf8) else { return nil }
+        return JoinInfo(cfHostname: h, user: u, room: v("room") ?? "", privateKey: key)
+    }
+
+    /// Joins a shared room from an invite: writes the one-time key to a private
+    /// temp file and opens a terminal that proxies through the Cloudflare tunnel.
+    /// Requires `cloudflared` on the joiner's machine (the held-open pane shows a
+    /// clear error if it's missing).
+    @discardableResult
+    static func join(_ info: JoinInfo) -> Workspace? {
+        guard let tabManager = AppDelegate.shared?.tabManager else { return nil }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("remux-cf-join-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let keyPath = dir.appendingPathComponent("key")
+        do {
+            try info.privateKey.write(to: keyPath, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: keyPath.path)
+        } catch { return nil }
+
+        func q(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        let proxy = "cloudflared access tcp --hostname \(info.cfHostname)"
+        let command = RemuxCollabSession.holdOnError(
+            "ssh -t -o StrictHostKeyChecking=no -o \(q("ProxyCommand=\(proxy)")) -i \(q(keyPath.path)) \(q("\(info.user)@\(info.cfHostname)"))"
+        )
+        return tabManager.addWorkspace(
+            title: "shared · \(RemoteRooms.displayName(forSocket: info.room))",
+            initialTerminalCommand: command,
+            inheritWorkingDirectory: false,
+            select: true,
+            autoWelcomeIfNeeded: false
+        )
+    }
+
     /// Stops a share: kills the tunnel and removes the scoped key line. Idempotent.
     static func stop(_ share: Share) async -> Bool {
         let (dest, identity, port) = sshParams(share.server)
@@ -87,15 +156,15 @@ enum RemuxCloudflareShare {
     // MARK: - Friend invite
 
     private static func copyFriendInvite(_ share: Share) {
-        // The key is exported so the friend command can reference it without
-        // pasting the multi-line key inline. We hand the whole block over.
-        let block = """
-        export REMUX_KEY='\(share.privateKey)'
-        \(share.friendCommand)
-        """
+        // Primary invite is the compact clickable link (opens in the friend's remux).
         let pb = NSPasteboard.general
         pb.clearContents()
-        pb.setString(block, forType: .string)
+        pb.setString(joinLink(share), forType: .string)
+    }
+
+    /// Fallback for friends without remux: a self-contained terminal command.
+    static func terminalCommand(_ share: Share) -> String {
+        "export REMUX_KEY='\(share.privateKey)'\n\(share.friendCommand)"
     }
 
     // MARK: - Local keygen

@@ -160,7 +160,8 @@ extension Workspace {
             gitBranch: gitBranchSnapshot,
             remote: remoteConfiguration?.sessionSnapshot(),
             environment: workspaceEnvironment.isEmpty ? nil : workspaceEnvironment,
-            savedServerId: savedServerId
+            savedServerId: savedServerId,
+            remuxReconnectCommand: remuxReconnectCommand
         )
     }
 
@@ -203,6 +204,16 @@ extension Workspace {
             }
         } else {
             disconnectRemoteConnection(clearConfiguration: true)
+        }
+
+        // remux: restore the Server Library connect command BEFORE panels are
+        // rebuilt, so a restored terminal with no other startup command re-runs it
+        // (the `newTerminalSurfaceLocal` fallback) and auto-re-attaches the remote
+        // tmux session — i.e. reopening remux reconnects the Mac mini where you
+        // left off instead of showing a dead local shell.
+        if let reconnect = snapshot.remuxReconnectCommand?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !reconnect.isEmpty {
+            remuxReconnectCommand = reconnect
         }
 
         let normalizedCurrentDirectory = snapshot.currentDirectory.trimmingCharacters(in: .whitespacesAndNewlines)

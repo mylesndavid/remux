@@ -492,6 +492,8 @@
 		A17110000000000000000001 /* KeyboardShortcutSpaceKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17110000000000000000002 /* KeyboardShortcutSpaceKeyTests.swift */; };
 		C34670040000000000000001 /* KeyboardShortcutTestSettingsIsolation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34670040000000000000002 /* KeyboardShortcutTestSettingsIsolation.swift */; };
 		DA7A10CA710E000000000003 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = DA7A10CA710E000000000001 /* Localizable.xcstrings */; };
+		8AFF8DDAEA4055178BE636F1 /* LocalRoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A21ADA10FCDB8891ADB6E4 /* LocalRoom.swift */; };
+		EEFDF3F959C654B587701B56 /* LocalRoomSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E07A92D1290ED29A16D8B37 /* LocalRoomSheet.swift */; };
 		53750022A0B1C2D3E4F50022 /* MacAuthComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53750023A0B1C2D3E4F50023 /* MacAuthComposition.swift */; };
 		D1F0A00500000000000000E1 /* MacPresenceDecisionCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F0A00500000000000000E2 /* MacPresenceDecisionCache.swift */; };
 		D1F0A00200000000000000B1 /* MacPresenceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F0A00200000000000000B2 /* MacPresenceMonitor.swift */; };
@@ -669,6 +671,7 @@
 		063516351A6B6F642928B37D /* RemoteTmuxWindowMirrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E292DDF62C863C3553F4C9E7 /* RemoteTmuxWindowMirrorView.swift */; };
 		0F17C0DE0F17C0DE0F17C002 /* RemoteTmuxWindowRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F17C0DE0F17C0DE0F17C001 /* RemoteTmuxWindowRegistry.swift */; };
 		FA00C0DE0001BEEF0001CAFE /* RemoteTmuxWindowRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA00C0DE0002BEEF0002CAFE /* RemoteTmuxWindowRegistryTests.swift */; };
+		42BAA63D81AD145EC81C2006 /* RemoteTunnels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011ACCB945A5C5EBADC96FE7 /* RemoteTunnels.swift */; };
 		C0F261DE9B55C18B4E76231F /* RemuxCloudflareShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = B056707F89EF8FC94B559514 /* RemuxCloudflareShare.swift */; };
 		DC9A35C86DA71CE0B35979B4 /* RemuxCollabSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF164E3A416DABBCF7BCEC4 /* RemuxCollabSession.swift */; };
 		5E1200000000000000000103 /* RemuxServerConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E1200000000000000000203 /* RemuxServerConnector.swift */; };
@@ -1508,6 +1511,8 @@
 		A17110000000000000000002 /* KeyboardShortcutSpaceKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutSpaceKeyTests.swift; sourceTree = "<group>"; };
 		C34670040000000000000002 /* KeyboardShortcutTestSettingsIsolation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutTestSettingsIsolation.swift; sourceTree = "<group>"; };
 		DA7A10CA710E000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		C4A21ADA10FCDB8891ADB6E4 /* LocalRoom.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalRoom.swift; sourceTree = "<group>"; };
+		3E07A92D1290ED29A16D8B37 /* LocalRoomSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalRoomSheet.swift; sourceTree = "<group>"; };
 		53750023A0B1C2D3E4F50023 /* MacAuthComposition.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MacAuthComposition.swift; sourceTree = "<group>"; };
 		D1F0A00500000000000000E2 /* MacPresenceDecisionCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacPresenceDecisionCache.swift; sourceTree = "<group>"; };
 		D1F0A00200000000000000B2 /* MacPresenceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacPresenceMonitor.swift; sourceTree = "<group>"; };
@@ -1681,6 +1686,7 @@
 		E292DDF62C863C3553F4C9E7 /* RemoteTmuxWindowMirrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTmuxWindowMirrorView.swift; sourceTree = "<group>"; };
 		0F17C0DE0F17C0DE0F17C001 /* RemoteTmuxWindowRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTmuxWindowRegistry.swift; sourceTree = "<group>"; };
 		FA00C0DE0002BEEF0002CAFE /* RemoteTmuxWindowRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTmuxWindowRegistryTests.swift; sourceTree = "<group>"; };
+		011ACCB945A5C5EBADC96FE7 /* RemoteTunnels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteTunnels.swift; sourceTree = "<group>"; };
 		B056707F89EF8FC94B559514 /* RemuxCloudflareShare.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemuxCloudflareShare.swift; sourceTree = "<group>"; };
 		7DF164E3A416DABBCF7BCEC4 /* RemuxCollabSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemuxCollabSession.swift; sourceTree = "<group>"; };
 		5E1200000000000000000203 /* RemuxServerConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLibrary/RemuxServerConnector.swift; sourceTree = "<group>"; };
@@ -3139,6 +3145,9 @@
 				E529FBA0CF067E09CCF71869 /* SidebarRoomsSection.swift */,
 				B056707F89EF8FC94B559514 /* RemuxCloudflareShare.swift */,
 				BC05C57DBCFA6AEB87B7C094 /* CloudflareShareSheet.swift */,
+				011ACCB945A5C5EBADC96FE7 /* RemoteTunnels.swift */,
+				C4A21ADA10FCDB8891ADB6E4 /* LocalRoom.swift */,
+				3E07A92D1290ED29A16D8B37 /* LocalRoomSheet.swift */,
 			);
 			name = ServerLibrary;
 			path = ServerLibrary;
@@ -3814,6 +3823,8 @@
 				A5F10013A1B2C3D4E5F60719 /* KeyboardShortcutSettingsFileStore+Template.swift in Sources */,
 				A5F10011A1B2C3D4E5F60719 /* KeyboardShortcutSettingsFileStore.swift in Sources */,
 				C1713004C1713004C1713004 /* KeyboardShortcutSettingsLookup.swift in Sources */,
+				8AFF8DDAEA4055178BE636F1 /* LocalRoom.swift in Sources */,
+				EEFDF3F959C654B587701B56 /* LocalRoomSheet.swift in Sources */,
 				53750022A0B1C2D3E4F50022 /* MacAuthComposition.swift in Sources */,
 				D1F0A00500000000000000E1 /* MacPresenceDecisionCache.swift in Sources */,
 				D1F0A00200000000000000B1 /* MacPresenceMonitor.swift in Sources */,
@@ -3941,6 +3952,7 @@
 				826F6597BF05F1242E17F0C3 /* RemoteTmuxWindowMirror.swift in Sources */,
 				063516351A6B6F642928B37D /* RemoteTmuxWindowMirrorView.swift in Sources */,
 				0F17C0DE0F17C0DE0F17C002 /* RemoteTmuxWindowRegistry.swift in Sources */,
+				42BAA63D81AD145EC81C2006 /* RemoteTunnels.swift in Sources */,
 				C0F261DE9B55C18B4E76231F /* RemuxCloudflareShare.swift in Sources */,
 				DC9A35C86DA71CE0B35979B4 /* RemuxCollabSession.swift in Sources */,
 				5E1200000000000000000103 /* RemuxServerConnector.swift in Sources */,
