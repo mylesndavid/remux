@@ -493,26 +493,23 @@ extension SessionIndexStore {
         let fm = FileManager.default
         guard fm.fileExists(atPath: dbPath) else { return [] }
 
-        // Open the live DB read-only — never copy it. SQLite allows concurrent
-        // readers on a WAL database without disturbing the writing agent, and
-        // Devin's `sessions.db` can be several GB; the previous "snapshot the whole
-        // file to /tmp first" step took ~9s for a 2.3GB DB, so the Vault scan Task
-        // was cancelled before the copy finished and the list silently showed
-        // nothing. A plain read-only handle sees committed WAL data; `immutable=1`
-        // is the fallback for the no-writer / stale-shm case.
+        // Open the live DB read-only with `immutable=1` — no copy, no lock. This
+        // reads the main database file directly and never touches -wal/-shm, so it
+        // works against another process's live WAL database without disturbing it.
+        // A plain SQLITE_OPEN_READONLY handle *opens* but then fails at prepare with
+        // "unable to open database file" because WAL readers must be able to write
+        // the -shm. Devin's `sessions.db` is multi-GB, so the previous "snapshot the
+        // whole file to /tmp first" step took ~9s and the Vault scan Task cancelled
+        // it mid-copy, silently showing nothing. (Trade-off: rows still only in the
+        // uncheckpointed -wal aren't seen, but Devin checkpoints frequently.)
         var db: OpaquePointer?
-        if sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY, nil) != SQLITE_OK || db == nil {
+        let readonlyURI = "file:\(sqliteURIEncodedPath(dbPath))?immutable=1"
+        guard sqlite3_open_v2(
+            readonlyURI, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil
+        ) == SQLITE_OK, let db else {
             sqlite3_close(db)
-            db = nil
-            let immutableURI = "file:\(sqliteURIEncodedPath(dbPath))?immutable=1"
-            guard sqlite3_open_v2(
-                immutableURI, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil
-            ) == SQLITE_OK, db != nil else {
-                sqlite3_close(db)
-                return []
-            }
+            return []
         }
-        guard let db else { return [] }
         defer { sqlite3_close(db) }
         _ = sqlite3_busy_timeout(db, 100)
 
