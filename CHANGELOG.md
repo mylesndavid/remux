@@ -2,6 +2,15 @@
 
 All notable changes to cmux are documented here.
 
+## [0.64.19] - 2026-06-30
+
+### Fixed
+- Vault now lists Devin sessions. The agent's SQLite database is opened in place with `immutable=1` instead of copying the whole file first; Devin's `sessions.db` is multiple GB, so the copy was cancelled mid-scan and the Vault silently showed nothing.
+- Remote server panes (e.g. a Mac mini) survive laptop sleep. SSH keepalives tear down a control master whose connection died, the pane auto-reconnects to its still-running tmux session instead of dying at a dead prompt, and stale control-master sockets are cleared on wake.
+
+### Changed
+- Help and About links point at this fork; the upstream Discord link is hidden.
+
 ## [0.64.16] - 2026-06-15
 
 ### Added
